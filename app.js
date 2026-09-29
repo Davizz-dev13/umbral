@@ -17,7 +17,7 @@ if(weightsEl){
 function renderPortfolio(){
   const total=weights.reduce((a,b)=>a+b,0),valid=total===100&&weights.every(w=>w>=0&&w<=100);
   ids('weight-total').className='weight-total'+(valid?'':' error');
-  ids('weight-total').textContent='Total asignado: '+total+' %'+(valid?' · listo para simular':' · ajusta a 100 %');
+  ids('weight-total').textContent='Total asignado: '+total+' %'+(valid?' · mapa válido':' · ajusta a 100 % para ver el mapa');
   let at=0;const stops=weights.map((w,i)=>{const st=at;at+=w;return colors[i]+' '+st+'% '+at+'%'});
   ids('donut').style.background='conic-gradient('+stops.join(',')+')';
   ids('donut').querySelector('.donut-center').innerHTML=total+'<small>% ASIGNADO</small>';
