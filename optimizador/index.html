@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portfolio optimizer &middot; min CVaR</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+<script src="vendor/solver.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#f4ecd8; --panel:#faf5e7; --border:#d8cdb2; --fg:#2a170f; --mut:#7a6a58; --acc:#d96b2a; --green:#2e7d50; --red:#d9402f; --yellow:#eab619; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:'DM Sans',-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--fg); }
+  header { padding:24px 28px 8px; }
+  h1 { margin:0 0 4px; font-size:22px; font-family:'Bungee',sans-serif; font-weight:400; letter-spacing:.02em; }
+  .sub { color:var(--mut); font-size:13px; line-height:1.5; max-width:900px; }
+  main { padding:8px 28px 40px; max-width:1200px; }
+  .panel { background:var(--panel); border:3px solid var(--fg); border-radius:0; padding:16px 18px; margin-top:18px; }
+  .panel h2 { margin:0 0 10px; font-size:15px; font-family:'Bungee',sans-serif; font-weight:400; letter-spacing:.02em; }
+  .badge { display:inline-block; font-size:11px; padding:2px 8px; border:1px solid var(--border); color:var(--mut); margin-left:8px; vertical-align:middle; font-family:'DM Sans',sans-serif; }
+  table { border-collapse:collapse; width:100%; font-size:12.5px; }
+  th, td { padding:6px 8px; text-align:right; border-bottom:2px solid var(--border); white-space:nowrap; }
+  th { background:var(--fg); color:var(--bg); font-family:'Bungee',sans-serif; font-weight:400; font-size:10px; letter-spacing:.03em; }
+  th:first-child, td:first-child { text-align:left; }
+  .pos { color:var(--green); } .neg { color:var(--red); }
+  .chartbox { height:280px; margin-bottom:8px; }
+  .chartbox.tall { height:320px; }
+  footer { color:var(--mut); font-size:11.5px; padding:20px 28px 40px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media (max-width:860px){ .grid2 { grid-template-columns:1fr; } main { padding:8px 14px 40px; } header { padding:20px 16px 6px; } footer { padding:20px 16px 40px; } }
+  input[type=number] { width:64px; padding:4px 6px; border:2px solid var(--fg); background:var(--panel); color:var(--fg); font-family:'DM Sans',sans-serif; font-size:13px; text-align:right; }
+  input[type=number]:disabled { opacity:.35; border-color:var(--border); }
+  input[type=checkbox] { width:16px; height:16px; accent-color:var(--acc); }
+  select { padding:5px 8px; border:2px solid var(--fg); background:var(--panel); color:var(--fg); font-family:'DM Sans',sans-serif; font-size:13px; }
+  .ctab td:first-child { font-weight:600; }
+  .dot { display:inline-block; width:9px; height:9px; margin-right:6px; }
+  .bigbtn { display:inline-block; margin-top:14px; padding:12px 26px; background:var(--yellow); border:3px solid var(--fg); font-family:'Bungee',sans-serif; font-size:14px; cursor:pointer; }
+  .bigbtn:active { transform:scale(.98); }
+  .bigbtn:disabled { opacity:.5; cursor:default; }
+  .note { color:var(--mut); font-size:12px; margin-top:8px; line-height:1.5; }
+  .err { color:var(--red); font-size:13px; margin-top:10px; display:none; }
+  #spinner { display:none; font-size:13px; color:var(--mut); margin-top:12px; }
+  .expl p { margin:0 0 12px; font-size:14px; line-height:1.6; }
+  .expl p:last-child { margin:0; }
+  .expl code { background:var(--bg); padding:1px 5px; font-size:12.5px; }
+  .twrap { overflow-x:auto; }
+  @media (max-width:860px){ th,td { padding:5px 5px; font-size:11.5px; } th { font-size:9px; } }
+  a { color:var(--acc); }
+  .back { display:inline-block; margin-top:18px; color:var(--mut); font-size:14px; text-decoration:none; }
+  .back:hover { color:var(--fg); }
+  .winbtn{padding:4px 10px;border:2px solid var(--fg);background:var(--panel);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;margin-right:2px}
+  .winbtn.active{background:var(--yellow)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Portfolio optimizer &middot; min CVaR</h1>
+  <div class="sub">Pick assets, limits and a return target. The optimizer minimizes the average loss of the worst stretch of historical days (CVaR) for that target, solving a linear program. It compares against your portfolio and the max-CAGR corner.</div>
+</header>
+<main>
+  <div class="grid2">
+    <div class="panel">
+      <h2>1 &middot; Your current portfolio</h2>
+      <div class="twrap"><table class="ctab" id="cur-table"><thead><tr><th>Asset</th><th>Weight %</th></tr></thead><tbody></tbody></table></div>
+      <div class="note" id="cur-note"></div>
+    </div>
+    <div class="panel">
+      <h2>2 &middot; Universe and limits</h2>
+      <div class="twrap"><table class="ctab" id="lim-table"><thead><tr><th>Asset</th><th>Include</th><th>Max %</th></tr></thead><tbody></tbody></table></div>
+      <div style="margin-top:12px;font-size:13px">
+        <label style="font-size:12px;color:var(--mut);display:block;margin-bottom:4px">Add your own ticker</label>
+        <input type="text" id="custom-ticker" placeholder="e.g. DOGE, ETH, SOL" style="width:130px;padding:5px 8px;border:2px solid var(--fg);background:var(--panel);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;text-transform:uppercase">
+        <button id="custom-add" style="padding:6px 14px;background:var(--yellow);border:3px solid var(--fg);font-family:'Bungee',sans-serif;font-size:11px;cursor:pointer">Add</button>
+        <div class="note" id="custom-status">Built-in universe covers the usual stocks, ETFs, commodities and crypto. Other crypto loads live here (Coinbase USD pairs); anything else can join the nightly data on request.</div>
+      </div>
+      <div style="margin-top:12px;font-size:13px">
+        Expected return target: <input type="number" id="ret-obj" min="0" max="50" step="0.5" value="5" style="width:58px"> % yearly
+      </div>
+      <div style="margin-top:10px;font-size:13px">
+        CVaR confidence:
+        <select id="alpha-sel">
+          <option value="0.10">90%</option>
+          <option value="0.05" selected>95%</option>
+          <option value="0.01">99%</option>
+        </select>
+      </div>
+      <div style="margin-top:10px;font-size:13px">
+        Backtest window:
+        <button class="winbtn active" data-win="5">5Y</button>
+        <button class="winbtn" data-win="10">10Y</button>
+        <button class="winbtn" data-win="20">20Y</button>
+      </div>
+      <div class="note" id="win-note" style="display:none"></div>
+      <div class="note" id="mean-note">With no target, minimum CVaR is always 100% cash: minimizing risk while asking nothing in return is not a strategy. Each asset's expected return is its 5-year historical mean.</div>
+      <button class="bigbtn" id="solve-btn">Optimize</button>
+      <span id="spinner">solving the LP&hellip;</span>
+      <div class="err" id="err-box"></div>
+    </div>
+  </div>
+
+  <div id="results" style="display:none">
+    <div class="panel">
+      <h2>Optimal weights <span class="badge" id="res-badge"></span></h2>
+      <div class="chartbox"><canvas id="alloc-chart"></canvas></div>
+      <div class="twrap"><table id="w-table"><thead><tr><th>Asset</th><th>Your portfolio</th><th>Min CVaR</th><th>Max CAGR</th><th>Recommended</th></tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="panel">
+      <h2>Metrics (<span id="m-span">5 years</span>, historical data) <span class="badge">past returns do not guarantee future results</span></h2>
+      <div class="twrap"><table id="m-table"><thead><tr><th>Portfolio</th><th>CAGR</th><th>Sharpe</th><th>Max DD</th><th>Daily CVaR</th></tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="panel">
+      <h2>Efficient frontier <span class="badge" id="ef-badge"></span></h2>
+      <div class="chartbox tall"><canvas id="ef-chart"></canvas></div>
+      <div class="note">Each dot on the curve is the least risky portfolio the LP can build for one return target, with your selected assets and limits. The curve is the best achievable trade-off: risk on the horizontal axis (average loss of the worst days, lower is safer), expected yearly return on the vertical. The markers show where the four portfolios sit. The ringed Recommended point is where a line drawn from the Min CVaR return level would touch the curve at its steepest: the best extra return per unit of extra risk above the safe portfolio. Dots are solved on sampled days for speed, so the curve is a close sketch, not the exact LP of the main result.</div>
+    </div>
+    <div class="panel">
+      <h2>Growth of &euro;1</h2>
+      <div class="chartbox tall"><canvas id="eq-chart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>Drawdown</h2>
+      <div class="chartbox"><canvas id="dd-chart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="panel expl">
+    <h2>How it works</h2>
+    <p>Variance treats gains and losses the same, but nobody cries about gains. <b>CVaR</b> (Conditional Value at Risk) only looks at what hurts: the average loss of the worst days. At 95% confidence, it is the mean of the worst 5% of historical scenarios.</p>
+    <p>Minimizing CVaR looks like an impossible statistics problem, but Rockafellar and Uryasev proved it turns <b>exactly</b> into a linear program: each historical day is a scenario, each scenario adds one constraint, and the simplex finds the optimal corner. The weights that come out are the ones that would have best protected against the worst stretches of the selected window, within your limits.</p>
+    <p>The piece that makes it useful is the <b>return target</b>: without it, the mathematically correct answer is boring (100% cash, which almost never loses). By demanding a minimum expected return, the LP is forced to take risk, and the simplex finds the corner that does it with the least possible pain. It is the usual efficient frontier, just measuring risk on the side that matters.</p>
+    <p>The four portfolios tell the story. <b>Your portfolio</b> is where you start. <b>Min CVaR</b> is the LP's safest way to reach your target. <b>Max CAGR</b> is the other extreme: fill the best historical performers up to their caps and ignore risk. <b>Recommended</b> sits between them, the point of the frontier with the best extra return per unit of extra risk above the safe portfolio. Comparing the four shows the difference between "doesn't move", "doesn't crash", and "chases return".</p>
+    <p class="note">Scenarios: historical days from the selected window (resampled so the LP stays fast on mobile). Cash is a US T-bill ETF (BIL). None of this is investment advice.</p>
+  </div>
+  <a class="back" href="../">&larr; Back to Sharpe Lab</a>
+</main>
+<footer id="foot"></footer>
+<script>
+const COLORS = {"Cash":"#7a6a58","Gold":"#eab619","Commodities":"#2e7d50","S&P 500":"#2f6fd0","Bitcoin":"#f7931a","MSCI World":"#9467bd","Emerging":"#17a2b8","Silver":"#8f9ba8"};
+const DEFAULT_CUR = {"Cash":0,"Gold":25,"Commodities":0,"S&P 500":0,"Bitcoin":15,"MSCI World":50,"Emerging":10,"Silver":0};
+const DEFAULT_MAX = {"Cash":100,"Gold":30,"Commodities":30,"S&P 500":30,"Bitcoin":15,"MSCI World":30,"Emerging":30,"Silver":30};
+const DEFAULT_INC = {"Cash":true,"Gold":true,"Commodities":true,"S&P 500":true,"Bitcoin":true,"MSCI World":true,"Emerging":true,"Silver":false};
+const PALETTE = ["#b87333","#627eea","#d9402f","#3b8bc2","#4a5a6a","#76b900","#e05194","#00a2ed","#f25c05","#8e44ad","#16a085","#c0392b","#7f8c8d","#2c3e50","#a0522d","#6b8e23","#4682b4","#daa520","#cd5c5c","#20b2aa"];
+const colorOf = s => { if(COLORS[s]) return COLORS[s]; let h=0; for(const c of s) h=(h*31+c.charCodeAt(0))>>>0; return PALETTE[h%PALETTE.length]; };
+const DAYS_YR = 365;
+let DATA = null;
+let TICK = {};
+let charts = [];
+
+const fmtPct = (v,d=1) => (v==null?'-':(v>0?'+':'')+(v*100).toFixed(d)+'%');
+const fmtW = v => (v*100).toFixed(1)+'%';
+
+function portReturns(weights, tickers){
+  const n = DATA.dates.length;
+  const out = new Float64Array(n);
+  tickers.forEach(t=>{
+    const w = weights[t]||0; if(!w) return;
+    const r = DATA.returns[TICK[t]];
+    for(let i=0;i<n;i++) out[i]+=w*r[i];
+  });
+  return Array.from(out);
+}
+function metrics(rets, alpha){
+  const n = rets.length;
+  let eq=1, peak=1, mdd=0, sum=0, sum2=0;
+  const sorted = new Float64Array(n);
+  for(let i=0;i<n;i++){
+    const r=rets[i]; sum+=r; sum2+=r*r; sorted[i]=r;
+    eq*=(1+r); if(eq>peak)peak=eq; const dd=eq/peak-1; if(dd<mdd)mdd=dd;
+  }
+  const mean=sum/n, varr=sum2/n-mean*mean, sd=Math.sqrt(Math.max(varr,0));
+  const sharpe = sd>1e-12 ? mean/sd*Math.sqrt(DAYS_YR) : null;
+  const cagr = Math.pow(eq, DAYS_YR/n)-1;
+  const k = Math.max(1, Math.floor(n*alpha));
+  const arr = Array.from(sorted).sort((a,b)=>a-b);
+  let cv=0; for(let i=0;i<k;i++) cv+=arr[i]; cv/=k;
+  return {cagr, sharpe, mdd, cvar:-cv};
+}
+function scenarioSample(tickers, maxS){
+  const n = DATA.dates.length;
+  const step = Math.max(1, Math.floor(n/maxS));
+  const idx = [];
+  for(let i=0;i<n;i+=step) idx.push(i);
+  return idx.map(i => tickers.map(t => DATA.returns[TICK[t]][i]));
+}
+function solveCVaR(tickers, maxW, alpha, maxS, muReq){
+  const scen = scenarioSample(tickers, maxS);
+  const S = scen.length, C = 0.10;
+  const n = DATA.dates.length;
+  const constraints = { sumw:{equal:1} };
+  if(muReq>0) constraints.__ret = {min:muReq};
+  const variables = {};
+  tickers.forEach((t,i)=>{
+    const r = DATA.returns[TICK[t]];
+    const mu = r.reduce((a,b)=>a+b,0)/n;
+    const v = { obj:0, sumw:1, __ret:mu };
+    constraints['max_'+i] = {max:maxW[t]};
+    v['max_'+i] = 1;
+    scen.forEach((row,s)=>{ v['sc_'+s] = row[i]; });
+    variables['w_'+i] = v;
+  });
+  const av = { obj:1 };
+  scen.forEach((_,s)=>{ av['sc_'+s]=1; });
+  variables.__alpha = av;
+  scen.forEach((row,s)=>{
+    constraints['sc_'+s] = {min:C};
+    const z = { obj:1/(S*alpha) }; z['sc_'+s]=1;
+    variables['z_'+s] = z;
+  });
+  const model = { optimize:'obj', opType:'min', constraints, variables };
+  const res = solver.Solve(model);
+  if(!res.feasible) return null;
+  const w = {};
+  tickers.forEach((t,i)=>{ w[t]=Math.max(0,res['w_'+i]||0); });
+  const tot = Object.values(w).reduce((a,b)=>a+b,0)||1;
+  tickers.forEach(t=>w[t]/=tot);
+  if(muReq>0){
+    // the daily-return constraint has tiny coefficients and the solver's
+    // feasibility tolerance can silently violate it: verify it explicitly
+    let m=0;
+    tickers.forEach(t=>{ const wgt=w[t]||0; if(!wgt) return; m+=wgt*DATA.returns[TICK[t]].reduce((a,b)=>a+b,0)/n; });
+    if(m < muReq*0.999) return null;
+  }
+  return w;
+}
+function solveMaxCAGR(tickers, maxW){
+  // exact for max expected return with long-only caps: fill from highest mean down
+  const n=DATA.dates.length;
+  const mus=tickers.map(t=>({t, mu:DATA.returns[TICK[t]].reduce((a,b)=>a+b,0)/n, cap:maxW[t]}));
+  mus.sort((a,b)=>b.mu-a.mu);
+  let rem=1; const w={};
+  mus.forEach(a=>{ const x=Math.max(0,Math.min(a.cap,rem)); w[a.t]=x; rem-=x; });
+  const tot=Object.values(w).reduce((a,b)=>a+b,0)||1;
+  tickers.forEach(t=>w[t]=(w[t]||0)/tot);
+  return w;
+}
+
+function addAssetRow(a){
+  const s=a.short;
+  const curT = document.querySelector('#cur-table tbody');
+  const limT = document.querySelector('#lim-table tbody');
+  const tr1=document.createElement('tr');
+  tr1.innerHTML='<td><span class="dot" style="background:'+colorOf(s)+'"></span>'+s+'</td><td><input type="number" min="0" max="100" step="1" value="'+(DEFAULT_CUR[s]??0)+'" id="cur-'+s+'"></td>';
+  curT.appendChild(tr1);
+  const tr2=document.createElement('tr');
+  const inc = DEFAULT_INC[s]??false;
+  tr2.innerHTML='<td><span class="dot" style="background:'+colorOf(s)+'"></span>'+s+'</td><td><input type="checkbox" id="inc-'+s+'"'+(inc?' checked':'')+'></td><td><input type="number" min="1" max="100" step="1" value="'+(DEFAULT_MAX[s]??30)+'" id="max-'+s+'"'+(inc?'':' disabled')+'></td>';
+  limT.appendChild(tr2);
+  tr2.querySelector('#inc-'+CSS.escape(s)).addEventListener('change',e=>{
+    tr2.querySelector('#max-'+CSS.escape(s)).disabled = !e.target.checked;
+  });
+}
+function buildTables(){
+  DATA.assets.forEach(addAssetRow);
+}
+function readCur(tickers){
+  let raw={}, tot=0;
+  tickers.forEach(t=>{ const v=Math.max(0,parseFloat(document.getElementById('cur-'+t).value)||0); raw[t]=v; tot+=v; });
+  if(tot<=0){ const w={}; tickers.forEach(t=>w[t]=1/tickers.length); return {w, note:'Weights normalized to equal parts (they summed 0).'}; }
+  const w={}; tickers.forEach(t=>w[t]=raw[t]/tot);
+  let dropped=0;
+  DATA.assets.forEach(a=>{
+    if(tickers.includes(a.short)) return;
+    dropped += Math.max(0,parseFloat((document.getElementById('cur-'+a.short)||{}).value)||0);
+  });
+  let note = Math.abs(tot-100)>0.5 ? 'Weights normalized (they summed '+tot.toFixed(0)+'%).' : '';
+  if(dropped>0.5) note += (note?' ':'') + dropped.toFixed(0)+'% of your portfolio sits in assets without full history in this window; it was normalized over what remains.';
+  return {w, note};
+}
+function render(wCur, wOpt, wMax, wRec, tickers, alpha){
+  document.getElementById('results').style.display='block';
+  charts.forEach(c=>c.destroy()); charts=[];
+  const names = ['Your portfolio','Min CVaR','Max CAGR','Recommended'];
+  const sets = [wCur,wOpt,wMax,wRec];
+  const pc = ['#c98a12','#d96b2a','#2f6fd0','#2e7d50'];
+
+  const wt=document.querySelector('#w-table tbody'); wt.innerHTML='';
+  tickers.forEach(t=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td><span class="dot" style="background:'+colorOf(t)+'"></span>'+t+'</td>'+sets.map(w=>'<td>'+fmtW(w[t]||0)+'</td>').join('');
+    wt.appendChild(tr);
+  });
+
+  const mt=document.querySelector('#m-table tbody'); mt.innerHTML='';
+  const mets = sets.map(w=>metrics(portReturns(w,tickers),alpha));
+  sets.forEach((w,i)=>{
+    const m=mets[i], tr=document.createElement('tr');
+    tr.innerHTML='<td>'+names[i]+'</td><td class="'+(m.cagr>=0?'pos':'neg')+'">'+fmtPct(m.cagr)+'</td><td>'+(m.sharpe==null?'-':m.sharpe.toFixed(2))+'</td><td class="neg">'+fmtPct(m.mdd)+'</td><td class="neg">-'+(m.cvar*100).toFixed(2)+'%</td>';
+    mt.appendChild(tr);
+  });
+
+  charts.push(new Chart(document.getElementById('alloc-chart'),{type:'bar',
+    data:{labels:tickers, datasets:names.map((nm,i)=>({label:nm, data:tickers.map(t=>(sets[i][t]||0)*100), backgroundColor:pc[i], borderColor:'#2a170f', borderWidth:1}))},
+    options:{maintainAspectRatio:false, scales:{x:{ticks:{color:'#7a6a58'},grid:{display:false}}, y:{ticks:{color:'#7a6a58',callback:v=>v+'%'},grid:{color:'#e3d9c0'},max:100}},
+    plugins:{legend:{labels:{color:'#7a6a58',boxWidth:10,font:{size:10}}}}}}));
+
+  const eqs = sets.map(w=>{let e=1; return portReturns(w,tickers).map(r=>e*=(1+r));});
+  charts.push(new Chart(document.getElementById('eq-chart'),{data:{datasets:names.map((nm,i)=>({type:'line',label:nm,data:DATA.dates.map((d,j)=>({x:d,y:eqs[i][j]})),borderColor:pc[i],borderWidth:1.6,pointRadius:0}))},
+    options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    scales:{x:{type:'time',time:{unit:'year'},ticks:{color:'#7a6a58',maxTicksLimit:8},grid:{color:'#e3d9c0'}},
+            y:{type:'logarithmic',ticks:{color:'#7a6a58'},grid:{color:'#e3d9c0'}}},
+    plugins:{legend:{onClick:(e,it,lg)=>flashDataset(lg.chart,it.datasetIndex),labels:{color:'#7a6a58',boxWidth:10,font:{size:10}}}}}}));
+
+  const dds = eqs.map(eq=>{let p=0; return eq.map(e=>{if(e>p)p=e;return (e/p-1)*100;});});
+  charts.push(new Chart(document.getElementById('dd-chart'),{data:{datasets:names.map((nm,i)=>({type:'line',label:nm,data:DATA.dates.map((d,j)=>({x:d,y:dds[i][j]})),borderColor:pc[i],borderWidth:1.3,pointRadius:0,fill:false}))},
+    options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    scales:{x:{type:'time',time:{unit:'year'},ticks:{color:'#7a6a58',maxTicksLimit:8},grid:{color:'#e3d9c0'}},
+            y:{ticks:{color:'#7a6a58',callback:v=>v+'%'},grid:{color:'#e3d9c0'}}},
+    plugins:{legend:{onClick:(e,it,lg)=>flashDataset(lg.chart,it.datasetIndex),labels:{color:'#7a6a58',boxWidth:10,font:{size:10}}}}}}));
+}
+
+function annReturn(weights, tickers){
+  const n=DATA.dates.length; let m=0;
+  tickers.forEach(t=>{ const w=weights[t]||0; if(!w)return; m+=w*DATA.returns[TICK[t]].reduce((a,b)=>a+b,0)/n; });
+  return m*DAYS_YR;
+}
+function solveRecommended(tickers, maxW, alpha, r0Daily){
+  // tangency of the frontier seen from (0, r0): maximize (annReturn-r0)/CVaR,
+  // floored at the Min CVaR return level. Scored on the LP's own sampled scenarios.
+  const r0An=r0Daily*DAYS_YR;
+  const scen=scenarioSample(tickers,350), S=scen.length;
+  const score=w=>{
+    if(!w) return -1e9;
+    const rets=scen.map(row=>tickers.reduce((s2,t,i)=>s2+(w[t]||0)*row[i],0));
+    rets.sort((x,y)=>x-y);
+    const k=Math.max(1,Math.floor(S*alpha));
+    let cv=0; for(let i=0;i<k;i++) cv+=rets[i]; cv/=k;
+    if(-cv<1e-9) return -1e9;
+    return (rets.reduce((a,b)=>a+b,0)/S*DAYS_YR - r0An)/(-cv);
+  };
+  const solve=mu=>solveCVaR(tickers,maxW,alpha,350,mu);
+  const lo=r0Daily, hi=greedyMaxReturn(tickers,maxW);
+  if(!(hi>lo)) return null;
+  const N=12, step=(hi-lo)/N;
+  let bestMu=lo, bestS=-1e9;
+  for(let i=0;i<=N;i++){
+    const mu=lo+step*i, sc=score(solve(mu));
+    if(sc>bestS){ bestS=sc; bestMu=mu; }
+  }
+  let a=Math.max(lo,bestMu-step), b=Math.min(hi,bestMu+step);
+  const gr=(Math.sqrt(5)-1)/2;
+  let c=b-gr*(b-a), d=a+gr*(b-a);
+  let sc=score(solve(c)), sd=score(solve(d));
+  for(let i=0;i<10;i++){
+    if(sc<sd){ a=c; c=d; sc=sd; d=a+gr*(b-a); sd=score(solve(d)); }
+    else { b=d; d=c; sd=sc; c=b-gr*(b-a); sc=score(solve(c)); }
+  }
+  return solve((a+b)/2);
+}
+function greedyMaxReturn(tickers, maxW){
+  return annReturn(solveMaxCAGR(tickers,maxW),tickers)/DAYS_YR;
+}
+function computeFrontier(tickers, maxW, alpha, onProgress, done){
+  const w0=solveCVaR(tickers,maxW,alpha,350,0);
+  if(!w0){ done(null); return; }
+  const lo=annReturn(w0,tickers)/DAYS_YR;
+  const gMax=greedyMaxReturn(tickers,maxW);
+  if(!(gMax>lo+0.00005)){ done(null); return; }
+  // trim the top of the sweep to what the solver actually satisfies, so a
+  // hard-to-reach edge does not wipe out the whole frontier
+  let fa=lo, fb=gMax;
+  for(let it=0; it<8; it++){
+    const mid=(fa+fb)/2;
+    if(solveCVaR(tickers,maxW,alpha,350,mid)) fa=mid; else fb=mid;
+  }
+  const hi=fa*0.999;
+  if(!(hi>lo+0.00005)){ done(null); return; }
+  const N=15, pts=[];
+  let i=0;
+  function step(){
+    const mu=lo+(hi-lo)*i/(N-1);
+    const w=solveCVaR(tickers,maxW,alpha,350,mu);
+    if(w){
+      pts.push({x:metrics(portReturns(w,tickers),alpha).cvar*100, y:annReturn(w,tickers)*100});
+    }
+    i++;
+    if(i<N){ onProgress(i,N); setTimeout(step,10); }
+    else done(pts);
+  }
+  step();
+}
+function flashDataset(chart, idx){
+  const ds=chart.data.datasets[idx];
+  const isLine=(ds.type==='line');
+  if(isLine){ if(ds._baseW==null)ds._baseW=ds.borderWidth; } else { if(ds._baseR==null)ds._baseR=ds.pointRadius; }
+  const base=isLine?ds._baseW:ds._baseR, t0=performance.now(), dur=900;
+  function tick(t){
+    const p=(t-t0)/dur;
+    if(p>=1){ if(isLine)ds.borderWidth=base; else ds.pointRadius=base; chart.update('none'); return; }
+    const f=Math.abs(Math.sin(p*Math.PI*3));
+    if(isLine) ds.borderWidth=base*(1+f*1.5); else ds.pointRadius=base*(0.5+f*1.1);
+    chart.update('none');
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+function renderFrontier(pts, markers){
+  const pc=['#c98a12','#d96b2a','#2f6fd0','#2e7d50'];
+  let xMax=0; pts.forEach(p=>{if(p.x>xMax)xMax=p.x;}); markers.forEach(m=>{if(m.x>xMax)xMax=m.x;});
+  xMax=Math.max(0.1, xMax*1.15);
+  const sets=[{type:'line',label:'Efficient frontier',data:pts,borderColor:'#a68a5b',backgroundColor:'#a68a5b',borderWidth:2,pointRadius:2.5,pointBackgroundColor:'#a68a5b',tension:0.15,fill:false}];
+  markers.forEach((m,i)=>{
+    // sticker halo: bigger cream disc behind the colored marker
+    sets.push({type:'scatter',label:m.label,data:[m],backgroundColor:pc[i],borderColor:'#2a170f',borderWidth:2.5,pointRadius:8,pointStyle:'circle',pointHoverRadius:10});
+    sets.push({type:'scatter',label:m.label,data:[m],backgroundColor:'#faf5e7',borderColor:'#2a170f',borderWidth:2,pointRadius:13,pointStyle:'circle',showLine:false,_halo:true});
+    if(i===3){ // recommended: outer orange ring
+      sets.push({type:'scatter',label:m.label,data:[m],backgroundColor:'rgba(0,0,0,0)',borderColor:'#d96b2a',borderWidth:2.5,pointRadius:16,pointStyle:'circle',showLine:false,_halo:true});
+    }
+  });
+  charts.push(new Chart(document.getElementById('ef-chart'),{data:{datasets:sets},
+    options:{maintainAspectRatio:false,
+    scales:{x:{type:'linear',min:0,suggestedMax:xMax,title:{display:true,text:'Daily CVaR % (avg loss of worst days, lower = safer)',color:'#7a6a58',font:{size:10}},ticks:{color:'#7a6a58',callback:v=>(Math.round(v*10)/10)+'%'},grid:{color:'#e3d9c0'}},
+            y:{title:{display:true,text:'Expected yearly return %',color:'#7a6a58',font:{size:10}},ticks:{color:'#7a6a58',callback:v=>v+'%'},grid:{color:'#e3d9c0'}}},
+    plugins:{legend:{onClick:(e,it,lg)=>flashDataset(lg.chart,it.datasetIndex),labels:{color:'#7a6a58',boxWidth:10,font:{size:10},filter:(it,ch)=>!ch.datasets[it.datasetIndex]._halo}},
+      tooltip:{filter:c=>!c.dataset._halo,callbacks:{label:c=>c.dataset.label+': return '+c.parsed.y.toFixed(1)+'% / daily CVaR '+c.parsed.x.toFixed(2)+'%'}}}}}));
+}
+function saveCustom(sym){
+  try{
+    const l=JSON.parse(localStorage.getItem('opt-custom')||'[]');
+    if(!l.includes(sym)){ l.push(sym); localStorage.setItem('opt-custom',JSON.stringify(l)); }
+  }catch(e){}
+}
+async function addCustom(symRaw){
+  const st=document.getElementById('custom-status');
+  const sym=(symRaw||'').trim().toUpperCase();
+  if(!sym) return;
+  if(!/^[A-Z0-9.\-]{1,12}$/.test(sym)){ st.textContent='That ticker does not look valid.'; return; }
+  const existing=DATA.assets.find(a=>a.short===sym || a.ticker===sym);
+  if(existing){
+    const cb=document.getElementById('inc-'+existing.short);
+    if(cb && !cb.checked){ cb.checked=true; cb.dispatchEvent(new Event('change')); }
+    st.textContent=existing.short+' is already in the universe: included.';
+    saveCustom(existing.short);
+    return;
+  }
+  st.textContent='Looking for '+sym+'...';
+  try{
+    st.textContent='Downloading '+sym+'-USD daily history (Coinbase)...';
+    const DAY=86400000, now=Date.now();
+    const px=new Map();
+    let cur=now-1826*DAY;
+    while(cur<now){
+      const chunkEnd=Math.min(cur+300*DAY, now);
+      const url='https://api.exchange.coinbase.com/products/'+sym+'-USD/candles?granularity=86400&start='+new Date(cur).toISOString()+'&end='+new Date(chunkEnd).toISOString();
+      const r=await fetch(url);
+      if(r.status===404){
+        st.textContent=sym+' is not in the nightly universe and has no USD pair on Coinbase. Stocks and ETFs can join the nightly data on request.';
+        return;
+      }
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const arr=await r.json();
+      arr.forEach(c=>{ px.set(new Date(c[0]*1000).toISOString().slice(0,10), c[4]); });
+      cur=chunkEnd;
+    }
+    const n=DATA.dates.length;
+    const closes=new Array(n); let last=null, covered=0;
+    for(let i=0;i<n;i++){ const d=DATA.dates[i]; if(px.has(d)){ last=px.get(d); covered++; } closes[i]=last; }
+    if(covered < n*0.6){ st.textContent=sym+': only '+covered+' days of history, too little for the optimizer.'; return; }
+    const lastCovered=[...px.keys()].sort().pop();
+    if((new Date(DATA.dates[n-1])-new Date(lastCovered))/864e5 > 10){ st.textContent=sym+': data looks stale (last quote '+lastCovered+'). Skipped.'; return; }
+    const rets=new Array(n).fill(0);
+    for(let i=1;i<n;i++){ if(closes[i-1] && closes[i]) rets[i]=closes[i]/closes[i-1]-1; }
+    DATA.assets.push({ticker:sym, name:sym, short:sym});
+    TICK[sym]=sym;
+    DATA.returns[sym]=rets;
+    addAssetRow({short:sym});
+    const cb=document.getElementById('inc-'+sym);
+    if(cb){ cb.checked=true; cb.dispatchEvent(new Event('change')); }
+    saveCustom(sym);
+    st.textContent=sym+' added live from Coinbase, '+covered+' days of history.';
+  }catch(e){
+    st.textContent='Could not load '+sym+' ('+e.message+'). The optimizer keeps working with the loaded assets.';
+  }
+}
+
+let DATA5=null, LONG=null, WINDOW=5;
+function sliceLong(years){
+  const dates=LONG.dates, n=dates.length;
+  const cutoff = years>=20 ? dates[0]
+    : new Date(new Date(dates[n-1]+'T00:00:00Z').getTime()-Math.round(years*365.25)*864e5).toISOString().slice(0,10);
+  let i0=dates.findIndex(d=>d>=cutoff); if(i0<0)i0=0;
+  const rets={};
+  LONG.assets.forEach(a=>{ rets[a.ticker]=LONG.returns[a.ticker].slice(i0); });
+  return {generated_at:LONG.generated_at, assets:LONG.assets, dates:dates.slice(i0), returns:rets};
+}
+function eligibleMap(data){
+  const ok={};
+  data.assets.forEach(a=>{
+    const r=data.returns[a.ticker];
+    ok[a.short]=!!r && r.every(v=>v!==null);
+  });
+  return ok;
+}
+function saveInputs(){
+  const vals={};
+  document.querySelectorAll('#cur-table input, #lim-table input').forEach(el=>{
+    vals[el.id]= el.type==='checkbox' ? el.checked : el.value;
+  });
+  return vals;
+}
+function restoreInputs(vals){
+  Object.entries(vals).forEach(([id,v])=>{
+    const el=document.getElementById(id);
+    if(!el || el.disabled) return;
+    if(el.type==='checkbox') el.checked=v; else el.value=v;
+  });
+}
+function applyEligibility(ok){
+  DATA.assets.forEach(a=>{
+    if(ok[a.short]) return;
+    ['inc-','max-','cur-'].forEach(pfx=>{
+      const el=document.getElementById(pfx+a.short);
+      if(!el) return;
+      el.disabled=true;
+      if(el.type==='checkbox') el.checked=false;
+      const row=el.closest('tr'); if(row){ row.style.opacity='0.4'; row.title='No full history in this window'; }
+    });
+  });
+}
+async function switchWindow(w){
+  w=+w;
+  if(w===WINDOW) return;
+  const note=document.getElementById('win-note');
+  document.querySelectorAll('.winbtn').forEach(b=>b.classList.toggle('active', +b.dataset.win===w));
+  const vals=saveInputs();
+  try{
+    if(w>5 && !LONG){
+      note.style.display='block'; note.textContent='Downloading '+w+' years of daily history...';
+      LONG=await (await fetch('optimizador-long.json')).json();
+    }
+    DATA = w===5 ? DATA5 : sliceLong(w);
+    WINDOW=w;
+    TICK={}; DATA.assets.forEach(a=>TICK[a.short]=a.ticker);
+    document.querySelector('#cur-table tbody').innerHTML='';
+    document.querySelector('#lim-table tbody').innerHTML='';
+    buildTables();
+    const ok = w===5 ? null : eligibleMap(DATA);
+    if(ok) applyEligibility(ok);
+    restoreInputs(vals);
+    document.getElementById('results').style.display='none';
+    document.getElementById('foot').textContent='Data: '+DATA.assets.map(a=>a.ticker).join(', ')+' · '+DATA.dates.length+' days · Generated: '+DATA.generated_at;
+    document.getElementById('m-span').textContent=w+' years';
+    document.getElementById('mean-note').textContent='With no target, minimum CVaR is always 100% cash: minimizing risk while asking nothing in return is not a strategy. Each asset\'s expected return is its '+w+'-year historical mean.';
+    if(w===5){ note.style.display='none'; note.textContent=''; }
+    else{
+      const excl=DATA.assets.filter(a=>!ok[a.short]).map(a=>a.short);
+      let customs=[]; try{ customs=JSON.parse(localStorage.getItem('opt-custom')||'[]'); }catch(e){}
+      let txt=w+'Y window: assets without the full '+w+' years are excluded: '+(excl.join(', ')||'none')+'.';
+      if(w>=20) txt+=' Commodities is the DBC broad basket here, and Cash before May 2007 accrues the 3-month T-bill rate (BIL did not exist yet).';
+      else txt+=' Commodities is the DBC broad basket in this window.';
+      if(customs.length) txt+=' Your added tickers ('+customs.join(', ')+') are only available in the 5Y window.';
+      txt+=' No invented backfill.';
+      note.textContent=txt;
+    }
+  }catch(e){
+    note.style.display='block'; note.textContent='Could not load the '+w+'Y data ('+e.message+').';
+  }
+}
+
+fetch('optimizador.json').then(r=>r.json()).then(d=>{
+  DATA=d; DATA5=d;
+  d.assets.forEach(a=>TICK[a.short]=a.ticker);
+  document.getElementById('foot').textContent='Data: '+d.assets.map(a=>a.ticker).join(', ')+' · '+d.dates.length+' days · Generated: '+d.generated_at;
+  buildTables();
+  document.querySelectorAll('.winbtn').forEach(b=>b.addEventListener('click',()=>switchWindow(b.dataset.win)));
+  document.getElementById('custom-add').addEventListener('click',()=>addCustom(document.getElementById('custom-ticker').value));
+  document.getElementById('custom-ticker').addEventListener('keydown',e=>{ if(e.key==='Enter') addCustom(e.target.value); });
+  (async()=>{
+    let saved=[]; try{ saved=JSON.parse(localStorage.getItem('opt-custom')||'[]'); }catch(e){}
+    for(const sym of saved) await addCustom(sym);
+  })();
+  const btn=document.getElementById('solve-btn');
+  btn.addEventListener('click',()=>{
+    const err=document.getElementById('err-box'); err.style.display='none';
+    const tickers=DATA.assets.map(a=>a.short).filter(t=>document.getElementById('inc-'+t).checked);
+    if(tickers.length<2){ err.textContent='Pick at least 2 assets.'; err.style.display='block'; return; }
+    const maxW={}; tickers.forEach(t=>maxW[t]=Math.min(100,Math.max(1,parseFloat(document.getElementById('max-'+t).value)||100))/100);
+    const capSum=Object.values(maxW).reduce((a,b)=>a+b,0);
+    if(capSum<0.999){ err.textContent='Max limits sum '+(capSum*100).toFixed(0)+'%: cannot reach 100% invested. Raise some limit.'; err.style.display='block'; return; }
+    const alpha=parseFloat(document.getElementById('alpha-sel').value);
+    btn.disabled=true; document.getElementById('spinner').style.display='inline';
+    setTimeout(()=>{
+      try{
+        const {w:wCur,note}=readCur(tickers);
+        document.getElementById('cur-note').textContent=note;
+        const retAn=Math.max(0,parseFloat(document.getElementById('ret-obj').value)||0)/100;
+        const muReq=Math.pow(1+retAn,1/DAYS_YR)-1;
+        const gDaily=greedyMaxReturn(tickers,maxW);
+        const wOpt=solveCVaR(tickers,maxW,alpha,350,muReq);
+        if(!wOpt){ err.textContent='No solution: that target is too high for these assets, limits and window. Max reachable right now: ~'+(gDaily*365*100).toFixed(1)+'% yearly. Lower the target or raise a max.'; err.style.display='block'; return; }
+        if(muReq>0.85*gDaily){ const cn=document.getElementById('cur-note'); cn.textContent=(cn.textContent?cn.textContent+' ':'')+'Heads-up: this target is near the max reachable (~'+(gDaily*365*100).toFixed(1)+'% yearly), so Min CVaR is forced into an extreme mix to reach it.'; }
+        const wMax=solveMaxCAGR(tickers,maxW);
+        document.getElementById('res-badge').textContent='target '+(retAn*100).toFixed(1)+'% yearly · CVaR '+(100-alpha*100).toFixed(0)+'% · '+tickers.length+' assets · '+WINDOW+'Y window';
+        const r0Daily=annReturn(wOpt,tickers)/DAYS_YR;
+        const wRec=solveRecommended(tickers,maxW,alpha,r0Daily)||wOpt;
+        render(wCur,wOpt,wMax,wRec,tickers,alpha);
+        const efBadge=document.getElementById('ef-badge');
+        efBadge.textContent='computing frontier...';
+        const mk=(w,label)=>({x:metrics(portReturns(w,tickers),alpha).cvar*100, y:annReturn(w,tickers)*100, label});
+        computeFrontier(tickers,maxW,alpha,(i,N)=>{efBadge.textContent='computing frontier '+i+'/'+N+'...';},pts=>{
+          if(!pts||pts.length<3){ efBadge.textContent='frontier not available for this selection'; return; }
+          efBadge.textContent='';
+          renderFrontier(pts,[mk(wCur,'Your portfolio'),mk(wOpt,'Min CVaR'),mk(wMax,'Max CAGR'),mk(wRec,'Recommended')]);
+        });
+        document.getElementById('results').scrollIntoView({behavior:'smooth'});
+      }catch(e){
+        err.textContent='Solver error: '+e.message; err.style.display='block';
+      }finally{
+        btn.disabled=false; document.getElementById('spinner').style.display='none';
+      }
+    },50);
+  });
+});
+</script>
+</body>
+</html>
