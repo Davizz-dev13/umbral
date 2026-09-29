@@ -4,4 +4,4 @@
 
 For every update, read the source in full and check its date. Edit the fact, timestamp, source link and editorial cutoff in `radar.html`. Then review each rule in `decisiones.html`: change its status only when every condition listed in the rule has source evidence; update the review timestamp, explanation and relevant source links. If evidence is missing, leave the state pending. Check the changed page on mobile before publishing. An old dated rule must not be presented as current. This is a manual editorial workflow, not a live feed, monitoring service, automatic trigger or trading signal.
 
-The prototype's portfolio and scenarios are user-entered hypothetical calculations. Registration is disabled pending an account service and privacy setup.
+The prototype's portfolio and scenarios are user-entered hypothetical calculations. Public editorial and tools require no registration. The proposed account layer would add personal trigger alerts, saved portfolios and analysis on those weights; none of that exists in the current static prototype. Signup remains disabled pending an account service, privacy setup, persistence and actual alert delivery.
