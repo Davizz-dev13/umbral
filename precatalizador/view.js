@@ -1,0 +1,17 @@
+const $=id=>document.getElementById(id);
+const number=(v,dec=1)=>typeof v==='number'?v.toLocaleString('es-ES',{maximumFractionDigits:dec,minimumFractionDigits:dec}):'—';
+function line(label,value){const dt=document.createElement('dt');dt.textContent=label;const dd=document.createElement('dd');dd.textContent=value;return [dt,dd]}
+function source(label,url){if(!/^https:\/\//.test(url||''))return null;const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=label+' ↗';return a}
+async function load(){try{
+ const response=await fetch('./precatalizador/scan.json',{cache:'no-store'});if(!response.ok)throw new Error('No hay barrido disponible');
+ const data=await response.json();const results=data.results||[];if(!results.length)throw new Error('Sin resultados');
+ $('scan-summary').textContent='BARRIDO '+new Date(data.generated_at_utc).toLocaleString('es-ES',{timeZone:'Europe/Madrid',dateStyle:'medium',timeStyle:'short'})+' (Madrid) · '+results.length+' nombres curados manualmente · datos de mercado no en tiempo real.';
+ for(const r of results){const card=document.createElement('article');card.className='scan-card'+(r.score>=6?' high':'');const head=document.createElement('div');head.className='scan-card-head';const ticker=document.createElement('h3');ticker.className='scan-ticker';ticker.textContent=r.ticker;const score=document.createElement('span');score.className='scan-score';score.textContent=r.error?'SIN DATOS':r.score+'/7';head.append(ticker,score);card.append(head);
+ if(r.error){const p=document.createElement('p');p.className='scan-error';p.textContent='No se pudo comprobar la cotización. No genera alerta.';card.append(p);$('scan-results').append(card);continue}
+ const sector=document.createElement('p');sector.textContent=r.sector+' · '+r.market;card.append(sector);const facts=document.createElement('dl');
+ for(const pair of [line('Evento previsto',r.catalyst?.window_end+' (ventana, no fecha firme)'),line('Capitalización',number(r.cap_usd_m)+' M USD'),line('Precio',number(r.price,3)+' '+r.price_currency_unit),line('60 sesiones',number(r.return_60sessions_pct)+' %'),line('Caja estimada',number(r.runway_est_months)+' meses'),line('Último cierre',r.last_complete_session||'—')])facts.append(...pair);
+ card.append(facts);const event=document.createElement('p');event.textContent=r.catalyst?.description||'';card.append(event);
+ const caution=document.createElement('p');caution.className='scan-caution';const failed=Object.entries(r.flags||{}).filter(([,ok])=>!ok).map(([key])=>({'dilution_review_complete':'dilución no despejada','survives_event_plus_6mo':'margen de caja insuficiente','cap_300m_3b_usd':'fuera de banda de capitalización','catalyst_future_verified_window':'sin evento futuro verificado','financial_snapshot_not_stale':'cifras financieras desactualizadas','no_60session_euphoria':'subida previa excesiva','business_quality_reviewed':'calidad pendiente de revisar'}[key]||key));caution.textContent='Pendiente: '+(failed.join('; ')||'revisión independiente antes de cualquier decisión')+'. 6/7 no es señal de compra.';card.append(caution);
+ const links=document.createElement('div');links.className='scan-links';for(const [label,url] of [['Evento',r.catalyst?.source_url],['Finanzas',r.financial_source_url]]){const a=source(label,url);if(a)links.append(a)}card.append(links);$('scan-results').append(card)}
+ }catch(e){$('scan-summary').textContent='No se puede cargar el último barrido. No uses una puntuación anterior como actual.'}}
+load();

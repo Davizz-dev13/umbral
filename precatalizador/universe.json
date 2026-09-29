@@ -1,0 +1,110 @@
+[
+  {
+    "ticker": "IVA",
+    "sector": "biotecnología / MASH",
+    "market": "Nasdaq ADR EEUU; también Euronext París",
+    "catalyst": {
+      "type": "trial_readout",
+      "window_start": "2026-10-01",
+      "window_end": "2026-12-31",
+      "description": "NATiV3 fase III: resultados principales esperados Q4 2026, NO aprobación FDA",
+      "source_url": "https://www.globenewswire.com/news-release/2026/09/02/3355510/0/en/inventiva-announces-last-patient-visit-in-nativ3-phase-3-clinical-trial-of-lanifibranor-in-mash.html"
+    },
+    "financial_as_of": "2026-06-30",
+    "cash_m_local": 233.9,
+    "monthly_burn_m_local": 7.57,
+    "financial_source_url": "https://via.ritzau.dk/files/90446/15186969/552765/en",
+    "dilution_status": "review_conditional_financing",
+    "dilution_note": "€166.1M cash + €67.8M deposits at June; €45.4M operating burn H1. Company says funded until Q2 2027 with tranches A/B, further tranche C conditional for 2028; debt/royalty financing raises dilution and covenant risk.",
+    "quality_status": "reviewed",
+    "quality_note": "Phase III last patient visit completed; binary clinical trial, no drug sales. Funding terms need legal review.",
+    "expansion_note": "pan-PPAR therapy opportunity in MASH; multiple indications not validated.",
+    "runway_guidance_until": "2027-06-30"
+  },
+  {
+    "ticker": "RGNX",
+    "sector": "biotecnología / terapia génica",
+    "market": "Nasdaq EEUU",
+    "catalyst": {
+      "type": "trial_readout",
+      "window_start": "2026-10-01",
+      "window_end": "2026-12-31",
+      "description": "ATMOSPHERE/ASCENT: datos principales pivotal wet AMD esperados Q4 2026",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/1590877/000119312526336716/rgnx-ex99_1.htm"
+    },
+    "financial_as_of": "2026-07-31",
+    "cash_m_local": 313.0,
+    "monthly_burn_m_local": 23.0,
+    "financial_source_url": "https://www.sec.gov/Archives/edgar/data/1590877/000119312526336716/rgnx-ex99_1.htm",
+    "dilution_status": "review_recent_equity_raise",
+    "dilution_note": "Caja pro forma $313M incluye $100M milestone AbbVie + $108M ampliación en julio, ambas recibidas; empresa proyecta caja a Q4 2027. Dilución reciente: no marcar anti-dilución como superada.",
+    "quality_status": "reviewed",
+    "quality_note": "Fase III DMD previa cumplió objetivo; wet AMD pivotal pendiente. Q2 ingreso incluye hito no recurrente de $100M.",
+    "expansion_note": "Vector AAV plataforma con varios programas; desarrollo clínico y regalías por separado.",
+    "runway_guidance_until": "2027-10-01"
+  },
+  {
+    "ticker": "ANNX",
+    "sector": "biotecnología / neuroinflamación",
+    "market": "Nasdaq EEUU",
+    "catalyst": {
+      "type": "trial_readout",
+      "window_start": "2026-10-01",
+      "window_end": "2026-12-31",
+      "description": "ARCHER II atrofia geográfica: endpoint principal mes 15 anunciado para Q4 2026; BLA de otro activo también prevista Q4",
+      "source_url": "https://ir.annexonbio.com/news-releases/news-release-details/annexon-reports-second-quarter-2026-financial-results-business"
+    },
+    "financial_as_of": "2026-06-30",
+    "cash_m_local": 209.2,
+    "monthly_burn_m_local": 15.8,
+    "financial_source_url": "https://ir.annexonbio.com/news-releases/news-release-details/annexon-reports-second-quarter-2026-financial-results-business",
+    "dilution_status": "review_credit_facility",
+    "dilution_note": "$209.2M caja/inversiones, ~$94.8M flujo operativo negativo H1. Guía de runway hasta 2028 incluye línea de crédito $200M, sus términos/restricciones precisan revisión.",
+    "quality_status": "reviewed",
+    "quality_note": "Diversas lecturas clínicas; resultado de fase III no está validado.",
+    "expansion_note": "C1q y C1 en neuroinflamación; cartera en fases distintas, no comercial.",
+    "runway_guidance_until": "2028-01-01"
+  },
+  {
+    "ticker": "CWR.L",
+    "sector": "energía / pilas de óxido sólido",
+    "market": "London Stock Exchange Reino Unido",
+    "catalyst": {
+      "type": "commercial_milestone",
+      "window_start": "2026-10-01",
+      "window_end": "2026-12-31",
+      "description": "Partner Delta apunta a producción piloto en Tainan a fines de 2026; meta de socio, no ingreso garantizado a Ceres",
+      "source_url": "https://www.ceres.tech/media/unvi2ebg/ceres-power-interim-results-23-sept-2026-final.pdf"
+    },
+    "financial_as_of": "2026-06-30",
+    "cash_m_local": 172.0,
+    "monthly_burn_m_local": 1.73,
+    "financial_source_url": "https://www.ceres.tech/media/unvi2ebg/ceres-power-interim-results-23-sept-2026-final.pdf",
+    "dilution_status": "review_recent_equity_raise",
+    "dilution_note": "£172M caja/inversiones al 30 junio tras ronda £102.6M de junio; H1 cash outflow £10.4M excluida ronda. Dilución reciente, producción de partner condicionada.",
+    "quality_status": "reviewed",
+    "quality_note": "Licencias con socios industriales y contrato de suministro Doosan/Reverion; adopción a escala pendiente.",
+    "expansion_note": "Tecnología SOFC/SOEC licenciada a varios fabricantes y mercados; economía de regalías por verificar."
+  },
+  {
+    "ticker": "SEYE.ST",
+    "sector": "software automoción / monitorización",
+    "market": "Nasdaq Stockholm Suecia",
+    "catalyst": {
+      "type": "profit_inflection",
+      "window_start": "2026-10-01",
+      "window_end": "2027-03-31",
+      "description": "Próximos resultados para probar sostenibilidad EBITDA positivo Q2 y conversión de design wins en producción; ventana de análisis, fecha de resultados NO confirmada",
+      "source_url": "https://smarteye.se/wp-content/uploads/2026/08/Smart-Eye-Interim-Report-Q2-2026.pdf"
+    },
+    "financial_as_of": "2026-06-30",
+    "cash_m_local": 85.875,
+    "monthly_burn_m_local": 7.94,
+    "financial_source_url": "https://smarteye.se/wp-content/uploads/2026/08/Smart-Eye-Interim-Report-Q2-2026.pdf",
+    "dilution_status": "review_financing",
+    "dilution_note": "SEK85.9M caja (SEK117.7M incluye crédito), FCF Q2 -23.82M; ventana de análisis supera runway mecánico de caja pura.",
+    "quality_status": "reviewed",
+    "quality_note": "379 design wins pero solo 175 en producción a Q2; pedido agosto para 2029, no catalizador inmediato. Precio >20 en SEK no es penny stock.",
+    "expansion_note": "DMS/OMS reutilizable en múltiples modelos/OEM; futuros contratos no igualan ingresos actuales."
+  }
+]
