@@ -1,0 +1,7 @@
+# Editorial workflow
+
+`radar.html` contains the dated news cards and their original source links. `decisiones.html` contains the decision-point rules and the manual status for each one. They are separate pages so that one can be revised without editing the portfolio and scenario tools.
+
+For every update, read the source in full and check its date. Edit the fact, timestamp, source link and editorial cutoff in `radar.html`. Then review each rule in `decisiones.html`: change its status only when every condition listed in the rule has source evidence; update the review timestamp, explanation and relevant source links. If evidence is missing, leave the state pending. Check the changed page on mobile before publishing. An old dated rule must not be presented as current. This is a manual editorial workflow, not a live feed, monitoring service, automatic trigger or trading signal.
+
+The prototype's portfolio and scenarios are user-entered hypothetical calculations. Registration is disabled pending an account service and privacy setup.
