@@ -1,0 +1,12 @@
+# Umbral deployment
+
+This directory is a static GitHub Pages front end. `optimizador/` is an unmodified copy of `Davizz-dev13/sharpe-lab/docs/optimizador` fetched 29 September 2026, with its two data files and `vendor/solver.js`. Its internal code, including external Chart.js/CDN calls, has not been modified.
+
+## Enable registration
+
+1. Create a Supabase project under the owner's control. Set Authentication > Providers > Email to allow email OTP/magic link and enable confirmation. Configure an appropriate email sender and the published site URL under Auth URL Configuration. Add the exact GitHub Pages domain to the redirect allowlist. Review SMTP limits and anti-abuse controls before promoting the link: built-in email delivery has rate limits and is not suitable for an unlimited public launch.
+2. Put only the project URL and the **public anon/publishable key** in `config.js`; never put the `service_role` key, a database password, or a secret in a static site or this repository. The form remains disabled until configured. Supabase Auth stores registrations and supports verification. It is not yet configured; the preview cannot count signups.
+3. Count verified users privately from the Supabase dashboard's SQL editor with an admin session: `select count(*) from auth.users where email_confirmed_at is not null;`. Do not expose `auth.users` or an unauthenticated count endpoint publicly. This count includes any admin/test registrations; filter or track them separately when measuring conversion. For a real funnel, use aggregate events for landing views and confirmed signups with consent-aware analytics and a written privacy notice.
+4. Publish privacy and service terms, identify the data controller, contact and retention policy, and explain login emails before making the form public. Test actual delivery, confirmation, redirects, abuse limits, duplicate addresses and the dashboard count. Add access control to the terminal if content should be for registered users only: GitHub Pages serves all source and assets publicly and an Auth UI alone does not lock it.
+
+The site displays dated editorial samples, not an automated news feed or a live alerting service. A live service needs a licensed news/data source, server job, timestamping and provenance, and explicit, tested alert criteria. Scenarios and weights operate in browser memory only; no position data is sent or stored. The original optimizer fetches market data from its bundled files. This preview is not a deployed account service.
